@@ -67,6 +67,7 @@ The platform follows a layered approach:
 
 This design preserves the complete event history while exposing a deduplicated and analyst-friendly view of the data.
 
+
 ---
 
 # dbt Model Lineage
