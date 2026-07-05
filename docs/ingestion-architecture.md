@@ -38,16 +38,16 @@ Python orchestrates the ingestion process, while DuckDB performs the heavy lifti
 # Project Structure
 
 ```text
-ingestion/
+customer-analytics-data-platform/
 
-├── main.py
-├── config/
-├── database/
-├── models/
-├── pipeline/
-├── utils/
-└── sql/
-```
+├── ingestion/                     # Python ingestion framework
+│   ├── config/
+│   ├── database/
+│   ├── models/
+│   ├── pipelines/
+│   ├── sql/
+│   ├── utils/
+├─── main.py
 
 ---
 
