@@ -40,6 +40,17 @@ Python orchestrates the ingestion process, while DuckDB performs the heavy lifti
 ```text
 customer-analytics-data-platform/
 
+├── data/                     
+│   ├── raw/
+│       ├── customer_sessions_1.json
+│       ├── customer_sessions_2.json
+│       ├── customer_sessions_3.json
+│       ├── ....
+│       ├── profiles1.json
+│       ├── profiles1.json
+│       ├── ....
+│       ├── database/
+│   ├── warehouse/              
 ├── ingestion/                     # Python ingestion framework
 │   ├── config/
 │   ├── database/
