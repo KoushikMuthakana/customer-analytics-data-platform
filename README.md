@@ -359,9 +359,9 @@ These marts are designed for dashboards, reporting, and ad-hoc analytics.
 
 | Document | Description |
 |----------|-------------|
-| `docs/ingestion-architecture.md` | Python ingestion architecture, transaction management, checkpointing, and idempotent loading |
-| `docs/data-discovery-and-modeling.md` | Source data exploration, CDC strategy, business entities, and modeling decisions |
-| `docs/gold-layer.md` | Gold analytical marts, business metrics, and supported analytical use cases |
+| [docs/ingestion-architecture.md](docs/ingestion-architecture.md) | Python ingestion architecture, transaction management, checkpointing, and idempotent loading |
+| [docs/data-discovery-and-modeling.md](docs/data-discovery-and-modeling.md)  | Source data exploration, CDC strategy, business entities, and modeling decisions |
+| [docs/gold-layer.md](docs/gold-layer.md) | Gold analytical marts, business metrics, and supported analytical use cases |
 
 ---
 
