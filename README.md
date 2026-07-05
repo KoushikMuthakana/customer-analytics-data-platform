@@ -104,14 +104,6 @@ Keeping all order statuses enables additional operational insights including:
 
 ---
 
-# dbt Model Lineage
-
-The transformation pipeline is implemented using dbt and follows a layered modeling approach.
-
-![dbt Model Lineage](docs/images/dbt-lineage.png)
-
----
-
 # Repository Structure
 
 ```text
@@ -224,6 +216,13 @@ This builds:
 - Intermediate models
 - Gold marts
 - Data quality tests
+
+---
+# dbt Model Lineage
+
+The transformation pipeline is implemented using dbt and follows a layered modeling approach.
+
+![dbt Model Lineage](docs/images/dbt-lineage.png)
 
 ---
 
