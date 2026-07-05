@@ -1,6 +1,6 @@
 # Customer Analytics Data Platform
 
-A production-inspired data platform that ingests raw Change Data Capture (CDC) events, reconstructs the latest business state, and builds analyst-ready analytical marts using **Python**, **DuckDB**, and **dbt**.
+A production-inspired data platform that ingests raw **Change Data Capture (CDC)** events, reconstructs the latest business state, and builds analyst-ready analytical marts using **Python**, **DuckDB**, **dbt**, and **Streamlit**.
 
 The project demonstrates a modern ELT workflow from raw JSON files to business-ready datasets that support reporting, dashboards, and downstream analytics.
 
@@ -9,11 +9,12 @@ The project demonstrates a modern ELT workflow from raw JSON files to business-r
 # Features
 
 - Incremental and idempotent ingestion of CDC events
-- CDC-aware deduplication pipeline that reconstructs the latest business state
+- CDC-aware deduplication that reconstructs the latest business state
 - Layered data architecture (Bronze → Staging → Intermediate → Gold)
 - Normalization of nested JSON into reusable business entities
-- Analyst-ready aggregated marts
-- Fully local execution using DuckDB and dbt
+- Analyst-ready analytical marts
+- Interactive Streamlit dashboard
+- Fully local execution using DuckDB
 
 ---
 
@@ -30,44 +31,47 @@ These events are not directly suitable for analytics because they contain:
 
 This project transforms the raw data into clean, normalized, and analyst-friendly datasets.
 
-
 ---
 
 # Solution Architecture
 
 ```text
-                  Raw JSON Files
+                  Raw NDJSON Files
                         │
                         ▼
-               Python Ingestion Layer
-         (Incremental & Idempotent Loading)
+              Python Ingestion Layer
+        (Incremental & Idempotent)
                         │
                         ▼
                  Bronze (Raw CDC)
                         │
                         ▼
-            dbt Staging (Latest State)
+          dbt Staging (Latest State)
                         │
                         ▼
-        dbt Intermediate (Normalized)
+      dbt Intermediate (Normalized)
                         │
                         ▼
-          dbt Gold (Analytical Marts)
+       dbt Gold (Analytical Marts)
+                        │
+                        ▼
+           Streamlit Dashboard
 ```
+
 ---
+
 # CDC & Deduplication Strategy
 
-The source datasets contain Change Data Capture (CDC) events, where multiple records may exist for the same business entity over time.
+The source datasets contain Change Data Capture (CDC) events where multiple records may exist for the same business entity.
 
-The platform follows a layered approach:
+The platform follows a layered transformation strategy:
 
 - **Bronze** preserves every CDC event exactly as received.
-- **Staging** reconstructs the latest business state by selecting the most recent event for each business key using the CDC timestamp.
+- **Staging** reconstructs the latest business state by selecting the latest event for each business key.
 - **Intermediate** normalizes nested business entities into reusable analytical tables.
-- **Gold** provides aggregated marts for reporting and analytics.
+- **Gold** builds aggregated marts for reporting and analytics.
 
-This design preserves the complete event history while exposing a deduplicated and analyst-friendly view of the data.
-
+This approach preserves the complete event history while exposing a clean, deduplicated business view.
 
 ---
 
@@ -75,36 +79,36 @@ This design preserves the complete event history while exposing a deduplicated a
 
 The case study focuses on generating insights for **2024** sales, customers, and promotions.
 
-To support this requirement while keeping the analytical models reusable, the Gold marts include two reporting dimensions:
+To satisfy the requirement while keeping the solution reusable, every Gold mart includes:
 
 | Dimension | Purpose |
-|----------|---------|
-| `order_year` | Enables analysis for 2024 while supporting future years without changing the data model. |
-| `order_status` | Enables analysis of completed and non-completed shopping sessions. |
+|-----------|---------|
+| `order_year` | Enables reporting for 2024 while supporting future years without model changes |
+| `order_status` | Supports analysis of completed and non-completed shopping sessions |
 
-According to the case study, a shopping session with **`order_status = 'closed'`** represents a completed purchase.
+According to the case study:
 
-By default, sales analytics should therefore use:
+> **A shopping session with `order_status = 'Closed'` represents a completed purchase.**
+
+Therefore, the Streamlit dashboard defaults to:
 
 - **Year = 2024**
 - **Order Status = Closed**
 
-Keeping all order statuses in the analytical layer also enables additional operational insights, such as:
+Keeping all order statuses enables additional operational insights including:
 
 - Open shopping sessions
 - Cancelled orders
 - Purchase conversion analysis
-- Shopping activity that did not result in a completed purchase
-
-This approach preserves the complete business state while allowing analysts to focus on completed sales when required.
+- Shopping sessions that did not become completed purchases
 
 ---
 
 # dbt Model Lineage
 
-The transformation pipeline is implemented using dbt and follows a layered modeling approach from Bronze to analyst-ready Gold marts.
+The transformation pipeline is implemented using dbt and follows a layered modeling approach.
 
-![dbt Model Lineage](docs/dbt-lineage.png)
+![dbt Model Lineage](docs/images/dbt-lineage.png)
 
 ---
 
@@ -113,18 +117,31 @@ The transformation pipeline is implemented using dbt and follows a layered model
 ```text
 customer-analytics-data-platform/
 
-├── ingestion/                 # Python ingestion pipeline
-├── dbt/                       # dbt transformation project
+├── ingestion/                     # Python ingestion framework
+├── dbt/
 │   ├── models/
 │   ├── macros/
 │   └── dbt_project.yml
+├── dashboard/
+│   ├── app.py
+│   ├── database.py
+│   ├── filters.py
+│   └── pages/
 ├── data/
-│   ├── raw/                   # Source JSON files
-│   └── warehouse/             # DuckDB database
+│   ├── raw/
+│   └── warehouse/
 ├── docs/
+│   ├── images/
+│   │   ├── dashboard-home.png
+│   │   ├── customer-analytics.png
+│   │   ├── customer-products.png
+│   │   ├── product-analytics.png
+│   │   ├── channel-analytics.png
+│   │   ├── discount-analytics.png
+│   │   └── data-validation.png
 │   ├── ingestion-architecture.md
-│   └── data-discovery-and-modeling.md
-|   └── gold-layer.md
+│   ├── data-discovery-and-modeling.md
+│   └── gold-layer.md
 ├── pyproject.toml
 ├── uv.lock
 ├── .env.example
@@ -138,6 +155,7 @@ customer-analytics-data-platform/
 - Python
 - DuckDB
 - dbt
+- Streamlit
 - uv
 
 ---
@@ -149,7 +167,7 @@ Install:
 - Python 3.12+
 - uv
 
-Install project dependencies:
+Install dependencies:
 
 ```bash
 uv sync
@@ -159,34 +177,36 @@ uv sync
 
 # Local Setup
 
-## 1. Clone the repository
+## Clone the repository
 
 ```bash
 git clone <repository-url>
+
 cd customer-analytics-data-platform
 ```
 
-## 2. Configure environment
+## Configure environment
 
-Create a `.env` file from the provided `.env.example`.
+```text
+Copy .env.example to .env
+```
 
-## 3. Run the ingestion pipeline
+## Run the ingestion pipeline
 
 ```bash
 uv run python -m ingestion.main
 ```
 
-This will:
+The ingestion pipeline automatically:
 
-- Create the DuckDB database (if it does not already exist)
-- Create the Bronze schema and tables
-- Load incremental CDC events from the raw JSON files
+- Creates the DuckDB database
+- Creates Bronze schemas
+- Loads raw CDC events
+- Performs incremental and idempotent ingestion
 
 ---
 
 # Build the Data Models
-
-Run all dbt models and tests:
 
 ```bash
 cd dbt
@@ -203,17 +223,67 @@ This builds:
 
 ---
 
-# Analytical Marts
+# Launch the Dashboard
 
-The Gold layer exposes analyst-ready marts.
+```bash
+cd dashboard
+
+uv run streamlit run app.py
+```
+
+Open:
+
+```text
+http://localhost:8501
+```
+
+The dashboard defaults to:
+
+- **Year = 2024**
+- **Order Status = Closed**
+
+matching the case study definition of completed purchases.
+
+---
+
+# Dashboard
+
+The Streamlit dashboard provides interactive exploration of the Gold analytical marts.
+
+## Home
+
+![Home](docs/images/dashboard-home.png)
+
+---
+
+## Customer Analytics
+
+![Customer Analytics](docs/images/customer-analytics.png)
+
+---
+
+## Channel Analytics
+
+![Channel Analytics](docs/images/channel-analytics.png)
+
+---
+
+## Discount Analytics
+
+![Discount Analytics](docs/images/discount-analytics.png)
+
+
+---
+
+# Analytical Marts
 
 | Mart | Description |
 |------|-------------|
 | `customer_summary` | Customer profile, loyalty, and shopping metrics by year and order status |
-| `customer_product_summary` | Customer purchasing behaviour by product, year, and order status |
-| `product_sales_summary` | Product sales performance by year and order status |
-| `channel_sales_summary` | Sales performance by channel, year, and order status |
-| `discount_summary` | Promotion and discount effectiveness by year and order status |
+| `customer_product_summary` | Customer purchasing behaviour by product |
+| `product_sales_summary` | Product sales performance |
+| `channel_sales_summary` | Channel performance |
+| `discount_summary` | Promotion and discount performance |
 
 These marts are designed for dashboards, reporting, and ad-hoc analytics.
 
@@ -221,36 +291,34 @@ These marts are designed for dashboards, reporting, and ad-hoc analytics.
 
 # Supported Business Questions
 
-The analytical marts enable answering questions such as:
-
-### Customer Analytics
+## Customer Analytics
 
 - Who are the highest-value customers?
 - Which loyalty tiers generate the most revenue?
 - How many shopping sessions has each customer completed?
 
-### Customer Purchasing Behaviour
+## Customer Purchasing Behaviour
 
 - Which products does each customer purchase most frequently?
 - Which products generate the highest revenue per customer?
 
-### Product Analytics
+## Product Analytics
 
 - Which products generate the highest revenue?
-- Which products are purchased the most?
+- Which products sell the most?
 - Which brands and categories perform best?
 
-### Channel Analytics
+## Channel Analytics
 
 - Which sales channel generates the highest revenue?
 - What is the average order value by channel?
 
-### Promotion Analytics
+## Promotion Analytics
 
 - Which discounts are used most frequently?
-- Which promotions provide the highest total discount?
+- Which promotions generate the largest discount amount?
 
-### Operational Analytics
+## Operational Analytics
 
 - How many shopping sessions did not result in a completed purchase?
 - How many orders remain open or were cancelled?
@@ -260,13 +328,11 @@ The analytical marts enable answering questions such as:
 
 # Project Documentation
 
-The project is documented in detail to explain the design decisions and implementation.
-
 | Document | Description |
 |----------|-------------|
-| [docs/ingestion-architecture.md](docs/ingestion-architecture.md) | Python ingestion architecture, transaction management, checkpointing, and idempotent loading |
-| [docs/data-discovery-and-modeling.md](docs/data-discovery-and-modeling.md) | Source data exploration, business entities, CDC strategy, and modeling decisions |
-| [docs/gold-layer.md](docs/gold-layer.md) | Gold layer design, analytical marts, and supported business use cases |
+| `docs/ingestion-architecture.md` | Python ingestion architecture, transaction management, checkpointing, and idempotent loading |
+| `docs/data-discovery-and-modeling.md` | Source data exploration, CDC strategy, business entities, and modeling decisions |
+| `docs/gold-layer.md` | Gold analytical marts, business metrics, and supported analytical use cases |
 
 ---
 
@@ -275,6 +341,8 @@ The project is documented in detail to explain the design decisions and implemen
 - Layered ELT architecture
 - Incremental and idempotent ingestion
 - CDC-aware data modeling
-- Clear separation of Bronze, Staging, Intermediate, and Gold layers
+- Separation of Bronze, Staging, Intermediate, and Gold layers
 - Normalized business entities before aggregation
-- Simple, maintainable, and production-inspired design
+- Business-first analytical marts
+- Simple, deterministic, and maintainable transformations
+- Production-inspired engineering practices
