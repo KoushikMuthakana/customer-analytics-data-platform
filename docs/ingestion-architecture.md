@@ -66,25 +66,39 @@ ingestion/
 
 # Ingestion Workflow
 
-```text
-Raw File
-    │
-    ▼
-Check Ingestion Status
-    │
-    ├── Already Processed → Skip
-    │
-    ▼
-Begin Transaction
-    │
-    ▼
-Load Bronze Table
-    │
-    ▼
-Update Checkpoint
-    │
-    ▼
-Commit Transaction
+
+# Ingestion Workflow
+
+```mermaid
+flowchart TD
+
+A[Start]
+
+--> B[Initialize Database]
+
+--> C[Load Dataset Metadata]
+
+--> D{Already Completed?}
+
+D -->|Yes| E[Skip]
+
+D -->|No| F[Mark RUNNING]
+
+F --> G[Begin Transaction]
+
+G --> H[Create Bronze Table<br/>if required]
+
+H --> I[Load NDJSON]
+
+I --> J[Mark COMPLETED]
+
+J --> K[Commit]
+
+K --> L[Next Dataset]
+
+E --> L
+
+L --> M[Finish]
 ```
 
 ---
@@ -103,36 +117,44 @@ This ensures:
 
 ---
 
-# Transaction Management
+# Transaction Flow
 
-Each dataset is processed inside a single database transaction.
+Each dataset is processed within a single database transaction.
 
-If ingestion succeeds:
+```mermaid
+sequenceDiagram
 
-```text
-BEGIN
-    ↓
-Load Bronze
-    ↓
-Update Checkpoint
-    ↓
-COMMIT
+participant Service
+participant Checkpoint
+participant Writer
+participant DuckDB
+
+Service->>Checkpoint: mark_running()
+
+Service->>DuckDB: BEGIN
+
+Service->>Writer: Load Bronze
+
+Writer->>DuckDB: INSERT
+
+Service->>Checkpoint: mark_completed()
+
+Service->>DuckDB: COMMIT
 ```
 
-If any step fails:
+If any operation fails:
 
 ```text
-BEGIN
-    ↓
-Load Bronze
-    ↓
-Error
-    ↓
 ROLLBACK
+
+↓
+
+Bronze remains unchanged
+
+↓
+
+Checkpoint marked as FAILED
 ```
-
-This guarantees that partial data is never written to the Bronze layer.
-
 ---
 
 # Dataset Registration
