@@ -9,11 +9,11 @@ The project demonstrates a modern ELT workflow from raw JSON files to business-r
 # Features
 
 - Incremental and idempotent ingestion of CDC events
+- CDC-aware deduplication pipeline that reconstructs the latest business state
 - Layered data architecture (Bronze → Staging → Intermediate → Gold)
-- Reconstruction of the latest business state from CDC logs
 - Normalization of nested JSON into reusable business entities
 - Analyst-ready aggregated marts
-- Fully local execution using DuckDB and dbt (no external infrastructure required)
+- Fully local execution using DuckDB and dbt
 
 ---
 
@@ -53,6 +53,20 @@ This project transforms the raw data into clean, normalized, and analyst-friendl
                         ▼
           dbt Gold (Analytical Marts)
 ```
+---
+# CDC & Deduplication Strategy
+
+The source datasets contain Change Data Capture (CDC) events, where multiple records may exist for the same business entity over time.
+
+The platform follows a layered approach:
+
+- **Bronze** preserves every CDC event exactly as received.
+- **Staging** reconstructs the latest business state by selecting the most recent event for each business key using the CDC timestamp.
+- **Intermediate** normalizes nested business entities into reusable analytical tables.
+- **Gold** provides aggregated marts for reporting and analytics.
+
+This design preserves the complete event history while exposing a deduplicated and analyst-friendly view of the data.
+
 ---
 
 # dbt Model Lineage
