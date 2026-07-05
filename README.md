@@ -30,6 +30,7 @@ These events are not directly suitable for analytics because they contain:
 
 This project transforms the raw data into clean, normalized, and analyst-friendly datasets.
 
+
 ---
 
 # Solution Architecture
@@ -67,6 +68,35 @@ The platform follows a layered approach:
 
 This design preserves the complete event history while exposing a deduplicated and analyst-friendly view of the data.
 
+
+---
+
+# Business Scope
+
+The case study focuses on generating insights for **2024** sales, customers, and promotions.
+
+To support this requirement while keeping the analytical models reusable, the Gold marts include two reporting dimensions:
+
+| Dimension | Purpose |
+|----------|---------|
+| `order_year` | Enables analysis for 2024 while supporting future years without changing the data model. |
+| `order_status` | Enables analysis of completed and non-completed shopping sessions. |
+
+According to the case study, a shopping session with **`order_status = 'closed'`** represents a completed purchase.
+
+By default, sales analytics should therefore use:
+
+- **Year = 2024**
+- **Order Status = Closed**
+
+Keeping all order statuses in the analytical layer also enables additional operational insights, such as:
+
+- Open shopping sessions
+- Cancelled orders
+- Purchase conversion analysis
+- Shopping activity that did not result in a completed purchase
+
+This approach preserves the complete business state while allowing analysts to focus on completed sales when required.
 
 ---
 
@@ -179,11 +209,11 @@ The Gold layer exposes analyst-ready marts.
 
 | Mart | Description |
 |------|-------------|
-| `customer_summary` | Customer profile, loyalty, and shopping metrics |
-| `customer_product_summary` | Customer purchasing behaviour by product |
-| `product_sales_summary` | Product sales and revenue performance |
-| `channel_sales_summary` | Sales performance by shopping channel |
-| `discount_summary` | Promotion and discount effectiveness |
+| `customer_summary` | Customer profile, loyalty, and shopping metrics by year and order status |
+| `customer_product_summary` | Customer purchasing behaviour by product, year, and order status |
+| `product_sales_summary` | Product sales performance by year and order status |
+| `channel_sales_summary` | Sales performance by channel, year, and order status |
+| `discount_summary` | Promotion and discount effectiveness by year and order status |
 
 These marts are designed for dashboards, reporting, and ad-hoc analytics.
 
@@ -219,6 +249,12 @@ The analytical marts enable answering questions such as:
 
 - Which discounts are used most frequently?
 - Which promotions provide the highest total discount?
+
+### Operational Analytics
+
+- How many shopping sessions did not result in a completed purchase?
+- How many orders remain open or were cancelled?
+- What is the conversion from shopping sessions to completed purchases?
 
 ---
 

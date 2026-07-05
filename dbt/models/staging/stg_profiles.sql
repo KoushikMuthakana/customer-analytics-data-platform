@@ -7,15 +7,15 @@ WITH latest_profiles AS (
             ORDER BY __ts_ms DESC
         ) AS rn
     FROM {{ source('bronze', 'profiles') }}
+    WHERE id is not null
 
 )
 
 SELECT
-
     id AS customer_id,
-    __ts_ms AS updated_at,
+    __ts_ms AS cdc_updated_at,
     CASE
-        WHEN __op = 'd' THEN FALSE
+        WHEN __op = 'd'  or __deleted ='true' THEN FALSE
         ELSE TRUE
     END AS is_active,
     TRY_CAST(attributes ->> '$.BirthDay' AS INTEGER) AS birth_day,

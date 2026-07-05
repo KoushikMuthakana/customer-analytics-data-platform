@@ -11,8 +11,20 @@ models:
       - name: is_active
         description: Indicates whether the customer is currently active.
 
-      - name: updated_at
+      - name: cdc_updated_at
         description: Source CDC event timestamp.
+
+      - name: updated_at
+        description: Source updated event timestamp at client.
+      
+      - name: ordered_at
+        description: Source ordered event timestamp at client.
+
+      - name: created_at
+        description: Source created event timestamp at client.
+
+      - name: order_status
+        description: Current business status of the shopping order (e.g. Closed, Open, Cancelled).
 
   - name: stg_customer_sessions
     description: Latest customer shopping session reconstructed from CDC events.
@@ -30,5 +42,5 @@ models:
       - name: is_active
         description: Indicates whether the session is currently active.
 
-      - name: updated_at
+      - name: cdc_updated_at
         description: Source CDC event timestamp.

@@ -8,7 +8,6 @@ models:
       - name: customer_id
         description: Unique customer identifier.
         tests:
-          - unique
           - not_null
 
       - name: total_sessions
@@ -44,7 +43,6 @@ models:
       - name: sku
         description: Product SKU.
         tests:
-          - unique
           - not_null
 
       - name: total_quantity_sold
@@ -60,7 +58,6 @@ models:
       - name: channel
         description: Sales channel.
         tests:
-          - unique
           - not_null
 
       - name: total_revenue
@@ -73,7 +70,6 @@ models:
       - name: discount_name
         description: Discount or promotion name.
         tests:
-          - unique
           - not_null
 
       - name: total_discount_amount
