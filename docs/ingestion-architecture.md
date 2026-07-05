@@ -63,10 +63,6 @@ ingestion/
 | `DuckDBClient` | Database connection and transaction management |
 
 ---
-
-# Ingestion Workflow
-
-
 # Ingestion Workflow
 
 ```mermaid
