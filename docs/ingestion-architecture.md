@@ -59,7 +59,7 @@ customer-analytics-data-platform/
 │   ├── sql/
 │   ├── utils/
 ├─── main.py
-
+```
 ---
 
 # Components
