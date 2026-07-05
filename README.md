@@ -118,9 +118,19 @@ The transformation pipeline is implemented using dbt and follows a layered model
 customer-analytics-data-platform/
 
 ├── ingestion/                     # Python ingestion framework
+│   ├── config/
+│   ├── database/
+│   ├── models/
+│   ├── pipelines/
+│   ├── sql/
+│   ├── utils/
+│   ├── main.py
 ├── dbt/
 │   ├── models/
-│   ├── macros/
+│   │   ├── staging/
+│   │   ├── intermediate/
+│   │   ├── marts/
+│   └── profiles.yml
 │   └── dbt_project.yml
 ├── dashboard/
 │   ├── app.py
@@ -133,12 +143,6 @@ customer-analytics-data-platform/
 ├── docs/
 │   ├── images/
 │   │   ├── dashboard-home.png
-│   │   ├── customer-analytics.png
-│   │   ├── customer-products.png
-│   │   ├── product-analytics.png
-│   │   ├── channel-analytics.png
-│   │   ├── discount-analytics.png
-│   │   └── data-validation.png
 │   ├── ingestion-architecture.md
 │   ├── data-discovery-and-modeling.md
 │   └── gold-layer.md
@@ -223,6 +227,31 @@ This builds:
 
 ---
 
+# View the dbt Documentation
+
+Generate the dbt documentation:
+
+```bash
+cd dbt
+
+uv run dbt docs generate
+```
+
+Launch the documentation website locally:
+
+```bash
+uv run dbt docs serve
+```
+
+The documentation includes:
+
+- Model lineage graph
+- Model dependencies
+- Column-level metadata
+- Data tests
+- Model documentation
+
+---
 # Launch the Dashboard
 
 ```bash
