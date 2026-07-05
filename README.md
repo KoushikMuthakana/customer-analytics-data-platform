@@ -183,9 +183,40 @@ cd customer-analytics-data-platform
 
 ## Configure environment
 
+Copy `.env.example` to `.env`.
+
+## Prepare the input data
+
+Place the source NDJSON files under the `data/raw` directory.
+
+The ingestion pipeline automatically discovers all matching files based on their filename prefixes.
+
+Supported naming conventions:
+
 ```text
-Copy .env.example to .env
+data/raw/
+
+customer_sessions.json
+customer_sessions_1.json
+customer_sessions_2.json
+customer_sessions_3.json
+...
+
+profiles.json
+profiles_1.json
+profiles_2.json
+profiles_3.json
+...
 ```
+
+Files must start with the expected dataset prefix:
+
+| Dataset | Accepted filename pattern |
+|---------|---------------------------|
+| Customer Sessions | `customer_sessions*.json` |
+| Profiles | `profiles*.json` |
+
+This allows multiple files for the same dataset to be processed automatically without requiring code changes.
 
 ## Run the ingestion pipeline
 
@@ -195,11 +226,10 @@ uv run python -m ingestion.main
 
 The ingestion pipeline automatically:
 
-- Creates the DuckDB database
-- Creates Bronze schemas
-- Loads raw CDC events
-- Performs incremental and idempotent ingestion
-
+- Discovers all matching source files in `data/raw`
+- Creates the DuckDB database (if it does not already exist)
+- Creates the Bronze schema and tables
+- Incrementally and idempotently ingests all discovered CDC events
 ---
 
 # Build the Data Models
@@ -374,3 +404,15 @@ These marts are designed for dashboards, reporting, and ad-hoc analytics.
 - Business-first analytical marts
 - Simple, deterministic, and maintainable transformations
 - Production-inspired engineering practices
+
+
+  # Future Enhancements
+
+Potential next steps to evolve this solution include:
+
+- Orchestrate ingestion and dbt transformations using a workflow orchestrator (e.g., Airflow or Dagster).
+- Extend the ingestion framework to support cloud storage sources such as Amazon S3, Google Cloud Storage, or Azure Blob Storage.
+- Replace the local DuckDB warehouse with a cloud analytical warehouse such as Google BigQuery for scalable production workloads.
+- Containerize the application with Docker for consistent deployments.
+- Add CI/CD to automate testing and deployment.
+- Enhance monitoring, logging, and alerting for pipeline health and data quality.
