@@ -4,7 +4,6 @@ WITH customers AS (
 
     SELECT *
     FROM {{ ref('stg_profiles') }}
-    LIMIT 10  --TODO REMOVE LIMIT 
 ),
 
 customer_offers AS (

@@ -3,7 +3,6 @@ WITH sessions AS (
     SELECT *
     FROM {{ ref('stg_customer_sessions') }}
     WHERE cartitems IS NOT NULL
-    LIMIT 10 --TODO REMOVE LIMIT 
 
 ),
 
