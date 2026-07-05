@@ -26,52 +26,58 @@ class IngestionService:
 
         self.db.execute_script(settings.sql_path / "init.sql")
 
+        
+
         for dataset in datasets:
+
             self._ingest_dataset(dataset)
 
         logger.info("Pipeline completed successfully.")
 
     def _ingest_dataset(self, dataset: Dataset) -> None:
+        all_files = [str(file.name) for file in sorted(settings.raw_data_path.glob("*.json")) if file.name.startswith(dataset.source_file)
+]       
+        logger.info(f"Processing all these file: '{all_files}'")
+        
+        for file in all_files:
+            source_file_path = settings.raw_data_path / file
+            logger.info(f"Processing '{file}'")
 
-        source_file = settings.raw_data_path / dataset.source_file
+            if self.checkpoint.is_completed(file):
+                logger.info(f"Skipping '{file}' (already processed)")
 
-        logger.info(f"Processing '{dataset.source_file}'")
+                return
 
-        if self.checkpoint.is_completed(dataset.source_file):
-            logger.info(f"Skipping '{dataset.source_file}' (already processed)")
+            cleanup_previous_load = self.checkpoint.is_failed(file)
 
-            return
+            self.checkpoint.mark_running(file)
 
-        cleanup_previous_load = self.checkpoint.is_failed(dataset.source_file)
+            start = time.perf_counter()
 
-        self.checkpoint.mark_running(dataset.source_file)
+            try:
+                with self.db.transaction():
+                    rows_loaded = self.writer.ingest(
+                        dataset=dataset,
+                        source_file=source_file_path,
+                        cleanup_previous_load=cleanup_previous_load,
+                    )
 
-        start = time.perf_counter()
+                    self.checkpoint.mark_completed(
+                        filename=file,
+                        rows_loaded=rows_loaded,
+                    )
 
-        try:
-            with self.db.transaction():
-                rows_loaded = self.writer.ingest(
-                    dataset=dataset,
-                    source_file=source_file,
-                    cleanup_previous_load=cleanup_previous_load,
+                elapsed = time.perf_counter() - start
+
+                logger.info(
+                    f"Loaded {rows_loaded:,} rows into "
+                    f"bronze.{dataset.table} "
+                    f"in {elapsed:.2f}s"
                 )
 
-                self.checkpoint.mark_completed(
-                    filename=dataset.source_file,
-                    rows_loaded=rows_loaded,
-                )
+            except Exception:
+                self.checkpoint.mark_failed(file)
 
-            elapsed = time.perf_counter() - start
+                logger.exception(f"Failed processing '{file}'")
 
-            logger.info(
-                f"Loaded {rows_loaded:,} rows into "
-                f"bronze.{dataset.table} "
-                f"in {elapsed:.2f}s"
-            )
-
-        except Exception:
-            self.checkpoint.mark_failed(dataset.source_file)
-
-            logger.exception(f"Failed processing '{dataset.source_file}'")
-
-            raise
+                raise

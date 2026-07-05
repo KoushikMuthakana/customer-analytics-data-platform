@@ -16,7 +16,7 @@ class Dataset:
 
 CUSTOMER_SESSIONS = Dataset(
     table="customer_sessions",
-    source_file="customer_sessions.json",
+    source_file="customer_sessions",
     columns=[
         Column("id", "BIGINT"),
         Column("firstsession", "BOOLEAN"),
@@ -43,7 +43,7 @@ CUSTOMER_SESSIONS = Dataset(
 
 PROFILES = Dataset(
     table="profiles",
-    source_file="profiles.json",
+    source_file="profiles",
     columns=[
         Column("id", "BIGINT"),
         Column("attributes", "JSON"),
