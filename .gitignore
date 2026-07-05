@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual Environment
+.venv/
+
+# Environment Variables
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
+
+# Ruff
+.ruff_cache/
+
+# Pytest
+.pytest_cache/
+
+# DuckDB
+*.duckdb
+*.duckdb.wal
+
+# Keep raw directory, ignore data files
+data/raw/*
+!data/raw/.gitkeep
+
+# dbt
+dbt/target/
+dbt/logs/
+dbt/dbt_packages/
