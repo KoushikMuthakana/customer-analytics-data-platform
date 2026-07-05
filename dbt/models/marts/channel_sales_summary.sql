@@ -33,4 +33,6 @@ SELECT
 
 FROM channel_metrics
 
+WHERE  channel IS NOT NULL
+
 GROUP BY channel

@@ -3,7 +3,6 @@ WITH discounts AS (
     SELECT *
     FROM {{ ref('stg_customer_sessions') }}
     WHERE cartitems IS NOT NULL
-
 ),
 
 session_discounts AS (
