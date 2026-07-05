@@ -1,98 +1,229 @@
 # Customer Analytics Data Platform
 
-## Overview
+A production-inspired data platform that ingests raw Change Data Capture (CDC) events, reconstructs the latest business state, and builds analyst-ready analytical marts using **Python**, **DuckDB**, and **dbt**.
 
-This project demonstrates how to build a production-inspired data platform for customer analytics using Change Data Capture (CDC) data.
-
-The goal is to transform raw operational events into clean, analytics-ready datasets that business users can easily query and build reports from.
-
-The implementation focuses on designing a maintainable data pipeline rather than just producing business insights. It follows a layered architecture with raw, curated, and aggregated datasets, similar to what you would typically find in a modern data platform.
+The project demonstrates a modern ELT workflow from raw JSON files to business-ready datasets that support reporting, dashboards, and downstream analytics.
 
 ---
 
-## Business Problem
+# Features
 
-Retail businesses generate a large number of events whenever customers interact with the system. Every purchase, update,delete or change creates another event in the operational database.
-
-While this event data is useful for operational systems, it isn't suitable for analytics directly.
-
-Business teams are usually interested in answering questions like:
-
-- Which products are selling the most?
-- How do online and offline sales compare?
-- Which promotions are actually driving sales?
-- What purchasing patterns do customers have?
-
-To answer these questions consistently, we first need to transform raw CDC events into trusted business datasets.
+- Incremental and idempotent ingestion of CDC events
+- Layered data architecture (Bronze → Staging → Intermediate → Gold)
+- Reconstruction of the latest business state from CDC logs
+- Normalization of nested JSON into reusable business entities
+- Analyst-ready aggregated marts
+- Fully local execution using DuckDB and dbt (no external infrastructure required)
 
 ---
 
-## Understanding the Source Data
+# Problem Statement
 
-The platform receives two datasets:
+The source system produces raw CDC events for customer profiles and shopping sessions.
 
-- `customer sessions`
-- `customer profiles`
+These events are not directly suitable for analytics because they contain:
 
-Both datasets are CDC logs exported as **NDJSON (Newline Delimited JSON)** files.
+- Multiple versions of the same business entity
+- Nested JSON structures
+- Insert, Update, and Delete events
+- Semi-structured customer and transaction attributes
 
-Each line represents a single change event rather than the latest state of a record. This means the same business entity can appear multiple times because of inserts, updates, and deletes.
-
-A typical customer session contains:
-
-- Session information
-- Customer reference
-- Store information
-- Shopping cart
-- Applied discounts
-- Additional session attributes
-- CDC metadata
-
-One interesting observation is that several fields (`cartitems`, `discounts`, and `attributes`) are themselves JSON objects stored as strings. These will need to be parsed and normalized during the transformation stage.
-
----
-## Understanding the Customer Session Dataset
-
-Each record in the dataset represents a **customer shopping session** captured from the operational system. A session records the customer's shopping activity, including purchased items, discounts, loyalty information, and CDC metadata.
-
-The table below summarizes the purpose of each top-level field.
-
-| Field | Description |
-|-------|-------------|
-| `id` | Unique identifier for the customer session. This is the primary key of the session. |
-| `firstsession` | Indicates whether this is the customer's first shopping session. Useful for customer acquisition analysis. |
-| `applicationid` | Identifier of the application that generated the session. Supports multi-application deployments. |
-| `profileid` | Internal customer identifier used to link the session with the customer profile dataset. |
-| `profileintegrationid` | External or integration-specific customer identifier used by upstream systems. |
-| `store_integration_id` | Identifier of the physical store or sales location where the transaction occurred. |
-| `loyaltycards` | List of loyalty cards associated with the customer during the session. |
-| `created` | Timestamp when the shopping session was created. |
-| `state` | Current state of the shopping session (for example, `open` or `closed`). A closed session indicates a completed purchase. |
-| `cartitems` | Collection of products added to the shopping cart. This field contains nested JSON describing every purchased item. |
-| `additional_costs` | Additional charges associated with the purchase, such as service fees or other costs. |
-| `discounts` | Discounts and promotions applied during the session. Stored as nested JSON. |
-| `attributes` | Additional session metadata such as sales channel, loyalty information, and other operational attributes. |
-| `updated` | Timestamp of the most recent update to the session. |
-| `closedat` | Timestamp when the shopping session was completed. May be empty for sessions that are still open. |
-| `total_float` | Total monetary value of the shopping cart after all calculations. |
-| `__ts_ms` | CDC event timestamp indicating when this change event was generated by the source system. |
-| `__op` | CDC operation type (`c` = Create, `u` = Update, `d` = Delete). |
-| `__deleted` | Logical delete flag indicating whether the record has been deleted in the source system. |
----
-
-## Initial Observations
-
-After inspecting the sample data, a few things became clear.
-
-- Each JSON object represents a customer session rather than a single product.
-- One customer session can contain multiple cart items.
-- Product information is embedded inside each cart item.
-- Discounts are stored as nested JSON.
-- The dataset contains CDC metadata (`__op`, `__ts_ms`, `__deleted`) which will be used to reconstruct the latest state of each entity.
-- The data represents operational events, not analytical tables.
-
-These observations drive the overall design of the data model and transformation pipeline.
+This project transforms the raw data into clean, normalized, and analyst-friendly datasets.
 
 ---
 
-The following sections describe the architecture, data model, and implementation decisions used to build the platform.
+# Solution Architecture
+
+```text
+                  Raw JSON Files
+                        │
+                        ▼
+               Python Ingestion Layer
+         (Incremental & Idempotent Loading)
+                        │
+                        ▼
+                 Bronze (Raw CDC)
+                        │
+                        ▼
+            dbt Staging (Latest State)
+                        │
+                        ▼
+        dbt Intermediate (Normalized)
+                        │
+                        ▼
+          dbt Gold (Analytical Marts)
+```
+---
+
+# dbt Model Lineage
+
+The transformation pipeline is implemented using dbt and follows a layered modeling approach from Bronze to analyst-ready Gold marts.
+
+![dbt Model Lineage](docs/dbt-lineage.png)
+
+---
+
+# Repository Structure
+
+```text
+customer-analytics-data-platform/
+
+├── ingestion/                 # Python ingestion pipeline
+├── dbt/                       # dbt transformation project
+│   ├── models/
+│   ├── macros/
+│   └── dbt_project.yml
+├── data/
+│   ├── raw/                   # Source JSON files
+│   └── warehouse/             # DuckDB database
+├── docs/
+│   ├── ingestion-architecture.md
+│   └── data-discovery-and-modeling.md
+|   └── gold-layer.md
+├── pyproject.toml
+├── uv.lock
+├── .env.example
+└── README.md
+```
+
+---
+
+# Technology Stack
+
+- Python
+- DuckDB
+- dbt
+- uv
+
+---
+
+# Prerequisites
+
+Install:
+
+- Python 3.12+
+- uv
+
+Install project dependencies:
+
+```bash
+uv sync
+```
+
+---
+
+# Local Setup
+
+## 1. Clone the repository
+
+```bash
+git clone <repository-url>
+cd customer-analytics-data-platform
+```
+
+## 2. Configure environment
+
+Create a `.env` file from the provided `.env.example`.
+
+## 3. Run the ingestion pipeline
+
+```bash
+uv run python -m ingestion.main
+```
+
+This will:
+
+- Create the DuckDB database (if it does not already exist)
+- Create the Bronze schema and tables
+- Load incremental CDC events from the raw JSON files
+
+---
+
+# Build the Data Models
+
+Run all dbt models and tests:
+
+```bash
+cd dbt
+
+uv run dbt build
+```
+
+This builds:
+
+- Staging models
+- Intermediate models
+- Gold marts
+- Data quality tests
+
+---
+
+# Analytical Marts
+
+The Gold layer exposes analyst-ready marts.
+
+| Mart | Description |
+|------|-------------|
+| `customer_summary` | Customer profile, loyalty, and shopping metrics |
+| `customer_product_summary` | Customer purchasing behaviour by product |
+| `product_sales_summary` | Product sales and revenue performance |
+| `channel_sales_summary` | Sales performance by shopping channel |
+| `discount_summary` | Promotion and discount effectiveness |
+
+These marts are designed for dashboards, reporting, and ad-hoc analytics.
+
+---
+
+# Supported Business Questions
+
+The analytical marts enable answering questions such as:
+
+### Customer Analytics
+
+- Who are the highest-value customers?
+- Which loyalty tiers generate the most revenue?
+- How many shopping sessions has each customer completed?
+
+### Customer Purchasing Behaviour
+
+- Which products does each customer purchase most frequently?
+- Which products generate the highest revenue per customer?
+
+### Product Analytics
+
+- Which products generate the highest revenue?
+- Which products are purchased the most?
+- Which brands and categories perform best?
+
+### Channel Analytics
+
+- Which sales channel generates the highest revenue?
+- What is the average order value by channel?
+
+### Promotion Analytics
+
+- Which discounts are used most frequently?
+- Which promotions provide the highest total discount?
+
+---
+
+# Project Documentation
+
+The project is documented in detail to explain the design decisions and implementation.
+
+| Document | Description |
+|----------|-------------|
+| `docs/ingestion-architecture.md` | Python ingestion architecture, transaction management, checkpointing, and idempotent loading |
+| `docs/data-discovery-and-modeling.md` | Source data exploration, business entities, CDC strategy, and modeling decisions |
+| `docs/gold-layer.md` | Gold layer design, analytical marts, and supported business use cases |
+
+---
+
+# Design Principles
+
+- Layered ELT architecture
+- Incremental and idempotent ingestion
+- CDC-aware data modeling
+- Clear separation of Bronze, Staging, Intermediate, and Gold layers
+- Normalized business entities before aggregation
+- Simple, maintainable, and production-inspired design

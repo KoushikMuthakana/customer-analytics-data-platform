@@ -1,0 +1,38 @@
+version: 2
+
+models:
+  - name: int_session_cart_items
+    description: One row per product purchased within a shopping session.
+
+    columns:
+      - name: session_id
+        tests:
+          - not_null
+
+      - name: sku
+        tests:
+          - not_null
+
+  - name: int_customer_active_offers
+    description: One row per active offer assigned to a customer.
+
+    columns:
+      - name: customer_id
+        tests:
+          - not_null
+
+      - name: active_offer
+        tests:
+          - not_null
+
+  - name: int_session_discounts
+    description: One row per discount applied within a shopping session.
+
+    columns:
+      - name: session_id
+        tests:
+          - not_null
+
+      - name: discount_name
+        tests:
+          - not_null

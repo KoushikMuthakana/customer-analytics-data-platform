@@ -1,0 +1,15 @@
+customer_analytics:
+
+  target: dev
+
+  outputs:
+
+    dev:
+
+      type: duckdb
+
+      path: ../data/warehouse/customer_analytics.duckdb
+
+      schema: analytics
+
+      threads: 4

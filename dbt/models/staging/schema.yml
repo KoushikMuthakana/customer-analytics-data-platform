@@ -1,0 +1,34 @@
+version: 2
+
+models:
+  - name: stg_profiles
+    description: Latest customer profile reconstructed from CDC events.
+
+    columns:
+      - name: customer_id
+        description: Loyalty profile associated with the shopping session. Null for anonymous or unlinked sessions.
+
+      - name: is_active
+        description: Indicates whether the customer is currently active.
+
+      - name: updated_at
+        description: Source CDC event timestamp.
+
+  - name: stg_customer_sessions
+    description: Latest customer shopping session reconstructed from CDC events.
+
+    columns:
+      - name: session_id
+        description: Unique identifier for a shopping session.
+        tests:
+          - unique
+          - not_null
+
+      - name: customer_id
+        description: Customer associated with the shopping session.
+
+      - name: is_active
+        description: Indicates whether the session is currently active.
+
+      - name: updated_at
+        description: Source CDC event timestamp.

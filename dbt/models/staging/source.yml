@@ -1,0 +1,14 @@
+version: 2
+
+sources:
+  - name: bronze
+    description: Raw CDC data ingested by the Python ingestion pipeline.
+    schema: bronze
+    loader: python_ingestion
+
+    tables:
+      - name: profiles
+        description: Raw customer profile CDC events.
+
+      - name: customer_sessions
+        description: Raw customer session CDC events.
