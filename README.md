@@ -213,9 +213,9 @@ The project is documented in detail to explain the design decisions and implemen
 
 | Document | Description |
 |----------|-------------|
-| `docs/ingestion-architecture.md` | Python ingestion architecture, transaction management, checkpointing, and idempotent loading |
-| `docs/data-discovery-and-modeling.md` | Source data exploration, business entities, CDC strategy, and modeling decisions |
-| `docs/gold-layer.md` | Gold layer design, analytical marts, and supported business use cases |
+| [docs/ingestion-architecture.md](docs/ingestion-architecture.md) | Python ingestion architecture, transaction management, checkpointing, and idempotent loading |
+| [docs/data-discovery-and-modeling.md](docs/data-discovery-and-modeling.md) | Source data exploration, business entities, CDC strategy, and modeling decisions |
+| [docs/gold-layer.md](docs/gold-layer.md) | Gold layer design, analytical marts, and supported business use cases |
 
 ---
 
