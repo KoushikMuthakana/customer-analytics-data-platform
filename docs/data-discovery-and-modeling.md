@@ -2,34 +2,102 @@
 
 ## Overview
 
-The dbt layer transforms raw Change Data Capture (CDC) data from the Bronze layer into clean, analytics-ready models using a layered architecture.
+This project transforms raw Change Data Capture (CDC) JSON datasets into clean, analytics-ready models using dbt.
 
-The transformation follows three logical layers:
+The objective is to reconstruct the latest business state from operational CDC events, normalize semi-structured data, and build reusable analytical models that enable analysts to answer questions such as:
+
+- What products sell the most?
+- How do online and offline sales compare?
+- What impact do discounts have on sales?
+- What customer purchasing patterns can be identified?
+
+The solution follows a layered architecture:
 
 - **Staging** – Reconstruct the latest business state from CDC events
 - **Intermediate** – Normalize nested business entities
-- **Marts** – Build business-ready analytical models
+- **Marts** – Build business-ready analytical datasets
 
-This layered design separates technical processing from business logic while producing reusable analytical datasets.
+This layered approach separates technical processing from business logic while producing reusable analytical models.
 
 ---
 
-# Source Data Characteristics
+# Understanding the Source Data
 
-## Profiles
+The source data consists of two JSON datasets exported from an operational system:
 
-The `profiles` dataset represents customers enrolled in the loyalty platform. It primarily contains customer information used for loyalty management, campaign targeting, and personalization rather than transactional activity.
+- `customer_sessions.json`
+- `profiles.json`
 
-### Business Observations
+Unlike a traditional relational export, both datasets are **Change Data Capture (CDC)** streams. Every insert, update, or delete on a database row generates a new event, meaning multiple versions of the same business entity may exist over time.
 
-- Profiles represent customer master data.
-- Customers may exist without shopping sessions.
-- Shopping sessions may reference customer IDs that are not present in the provided profiles dataset.
-- The provided sample data is not a complete relational extract, which explains the expected reconciliation differences between profile-based and session-based analytics.
+Therefore, the first responsibility of the transformation pipeline is reconstructing the latest business state before any analytical modeling can begin.
 
-### Customer Attributes
+---
 
-The following business attributes are extracted from the profile JSON:
+# customer_sessions.json
+
+The `customer_sessions` dataset captures shopping activity across both online and in-store channels.
+
+Each record represents a **shopping session**, not a completed order.
+
+A session evolves throughout its lifecycle as customers interact with it, generating multiple CDC events.
+
+Example lifecycle:
+
+```text
+OPEN
+   │
+   ├── Customer adds products
+   ├── Customer removes products
+   ├── Discounts applied
+   ├── Rewards updated
+   │
+   ▼
+CLOSED
+(Purchase completed)
+
+(optional)
+
+▼
+CANCELLED
+(Session cancelled after checkout)
+```
+
+Every state transition produces another CDC event while retaining the same session identifier.
+
+### Session Data Categories
+
+| Category | Columns | Purpose |
+|----------|---------|---------|
+| **CDC metadata** | `id`, `__op`, `__deleted`, `__ts_ms` | Reconstruct the latest state of each shopping session. `id` is the primary key, while CDC metadata identifies inserts, updates, deletes, and event ordering. |
+| **Session metadata** | `profileid`, `state`, `created`, `updated`, `closedat`, `firstsession`, `store_integration_id`, `total_float` | Describes the shopping session, including customer relationship, lifecycle state, timestamps, store, and transaction value. |
+| **Nested business data** | `attributes`, `cartitems`, `discounts`, `additional_costs` | Semi-structured JSON objects and arrays containing business information such as channel, products, rewards, discounts, and additional costs. These require parsing and normalization. |
+| **Operational metadata** | `applicationid`, `profileintegrationid`, `loyaltycards` | Operational fields primarily used for upstream systems and integrations rather than analytical reporting. |
+
+### Key Observations
+
+From exploring the raw session data, several modeling challenges became apparent:
+
+- The dataset stores **CDC history**, so multiple records exist for the same session.
+- Business attributes are embedded inside JSON (`attributes`).
+- Products are stored as nested arrays (`cartitems`).
+- Discounts are stored as JSON objects (`discounts`).
+- Sessions reference customers through `profileid`.
+- Shopping sessions can exist without a `customer_id`, representing anonymous or guest purchases.
+
+These observations directly influenced the staging and intermediate models.
+
+---
+
+# profiles.json
+
+The `profiles` dataset contains customer master data used for loyalty management, personalization, and campaign targeting.
+
+Like customer sessions, profile records are emitted as CDC events whenever customer attributes change.
+
+Each customer is uniquely identified by `id`.
+
+Examples of customer attributes include:
 
 - Loyalty Tier
 - Preferred Store
@@ -39,30 +107,16 @@ The following business attributes are extracted from the profile JSON:
 - Birth Day
 - Points to Next Reward
 
-These attributes are modeled in the customer analytical mart for customer segmentation and reporting.
+Some attributes are optional and may not appear in every event.
 
----
+The dataset also contains nested arrays (`ActiveLTAOffers`) that require normalization.
 
-## Customer Sessions
+### Business Observations
 
-The `customer_sessions` dataset captures shopping activity.
-
-Each record represents a business event generated during the lifecycle of a shopping session.
-
-Important business attributes include:
-
-- Customer
-- Shopping Channel
-- Order Status
-- Cart Items
-- Discounts
-- Business timestamps (`created_at`, `ordered_at`, `updated_at`)
-
-According to the case study:
-
-- **`order_status = Closed`** represents a completed purchase.
-
-The analytical layer preserves all order statuses while allowing sales reporting to focus on completed purchases.
+- Profiles represent customer master data rather than transactional activity.
+- Customers may exist without shopping sessions.
+- Some shopping sessions reference customer IDs that are not present in the provided profile dataset.
+- The supplied datasets are not a complete relational snapshot, so reconciliation differences between sessions and profiles are expected.
 
 ---
 
@@ -72,9 +126,9 @@ Both source datasets contain **Change Data Capture (CDC)** events.
 
 The Bronze layer preserves every event exactly as received.
 
-The Staging layer reconstructs the latest business state by selecting the latest event for each business entity using the CDC timestamp.
+The Staging layer reconstructs the latest business state by selecting the most recent event for each business entity using `__ts_ms`.
 
-Example lifecycle:
+Example:
 
 ```text
 Session Created
@@ -90,7 +144,7 @@ Checkout
 Closed
 ```
 
-Each state transition generates another CDC event while retaining the same business identifier.
+Every update produces another CDC event while retaining the same business identifier.
 
 ---
 
@@ -112,17 +166,20 @@ The dbt layer rebuilds deterministic analytical tables from Bronze, keeping the 
 
 # Modeling Decisions
 
-| Observation | Decision |
-|-------------|----------|
-| Bronze stores CDC history | Reconstruct latest state in Staging |
-| Business timestamps are required for reporting | Preserve business timestamps through Staging and Intermediate |
-| Shopping sessions contain nested products | Build `int_session_cart_items` |
-| Discounts are stored as JSON | Build `int_session_discounts` |
-| Active offers are stored as arrays | Build `int_customer_active_offers` |
-| Anonymous shopping sessions exist | Model `customer_id` as nullable |
-| Profiles and Sessions are not fully relational | Customer marts remain profile-centric and document reconciliation differences |
-| Case study requires 2024 reporting | Derive `order_year` in Gold marts |
-| Completed purchases are identified by `order_status = Closed` | Preserve `order_status` for analytical filtering and operational reporting |
+The structure of the raw data directly influenced the design of the dbt models.
+
+| Observation | Modeling Decision |
+|-------------|-------------------|
+| Bronze stores CDC history | Reconstruct the latest business state in Staging using the latest `__ts_ms`. |
+| Business timestamps are required for reporting | Preserve business timestamps throughout the pipeline. |
+| Shopping sessions contain nested products | Build `int_session_cart_items`. |
+| Discounts are stored as JSON objects | Build `int_session_discounts`. |
+| Active loyalty offers are stored as arrays | Build `int_customer_active_offers`. |
+| Business attributes are stored inside JSON | Parse JSON into typed relational columns during Staging. |
+| Anonymous shopping sessions exist | Model `customer_id` as nullable. |
+| Profiles and Sessions are not fully relational | Customer marts remain profile-centric while documenting reconciliation differences. |
+| Reporting is focused on 2024 | Derive `order_year` in Gold models. |
+| Analysts require flexible reporting | Preserve `order_status` to support both sales and operational reporting. |
 
 ---
 
@@ -130,24 +187,18 @@ The dbt layer rebuilds deterministic analytical tables from Bronze, keeping the 
 
 ## Staging
 
+The Staging layer reconstructs the latest business state while remaining close to the source schema.
+
 | Model | Purpose |
 |--------|---------|
 | `stg_profiles` | Latest customer profile |
 | `stg_customer_sessions` | Latest shopping session |
 
-### Customer Association
-
-Shopping sessions are not always associated with a customer profile.
-
-Approximately **108K** shopping sessions contain a null `customer_id`, representing anonymous or guest shopping sessions.
-
-Therefore, `customer_id` is modeled as an optional attribute.
-
 ---
 
 ## Intermediate
 
-The Intermediate layer normalizes nested business entities into reusable analytical datasets while preserving business timestamps.
+The Intermediate layer normalizes nested business entities into reusable relational datasets.
 
 | Model | Purpose |
 |--------|---------|
@@ -159,33 +210,33 @@ The Intermediate layer normalizes nested business entities into reusable analyti
 
 ## Marts
 
-The Gold layer derives reporting dimensions and builds analyst-ready datasets.
+The Gold layer builds analyst-ready datasets that answer the business questions posed in the case study.
 
 | Model | Purpose |
 |--------|---------|
-| `customer_summary` | Customer behavior and loyalty metrics by year and order status |
-| `customer_product_summary` | Customer purchasing behavior by product, year, and order status |
-| `product_sales_summary` | Product sales performance by year and order status |
-| `channel_sales_summary` | Sales performance by channel, year, and order status |
-| `discount_summary` | Discount and promotion performance by year and order status |
+| `customer_summary` | Customer behavior and loyalty metrics |
+| `customer_product_summary` | Customer purchasing behavior by product |
+| `product_sales_summary` | Product sales performance |
+| `channel_sales_summary` | Sales performance by channel |
+| `discount_summary` | Discount and promotion performance |
 
 ---
 
 # Reporting Dimensions
 
-The Gold layer derives business reporting dimensions from business timestamps.
+Business reporting dimensions are derived from business timestamps.
 
 | Dimension | Purpose |
-|----------|---------|
-| `order_year` | Supports year-based reporting, including the 2024 case study requirement |
-| `order_status` | Enables analysis of completed and non-completed shopping sessions |
+|-----------|---------|
+| `order_year` | Supports yearly reporting, including the 2024 case study requirement |
+| `order_status` | Enables both completed sales analysis and operational reporting |
 
 The Streamlit dashboard defaults to:
 
 - **Year = 2024**
 - **Order Status = Closed**
 
-while allowing analysts to explore additional years and shopping session states.
+while allowing analysts to explore other years and shopping session states.
 
 ---
 
@@ -230,10 +281,11 @@ while allowing analysts to explore additional years and shopping session states.
 
 - Bronze preserves every CDC event exactly as received.
 - Python performs incremental and idempotent ingestion into Bronze.
-- Staging reconstructs the latest business state from CDC events.
+- Staging reconstructs the latest business state from CDC events and converts JSON into typed relational columns.
 - Intermediate models normalize nested business entities into reusable analytical datasets.
-- Business timestamps are preserved through the transformation pipeline and reporting dimensions are derived in the Gold layer.
+- Gold models provide business-ready reporting datasets that directly answer stakeholder questions.
+- Business timestamps are preserved throughout the transformation pipeline.
 - Shopping sessions may exist without an associated customer profile.
-- The provided sample datasets are not fully relational, and expected reconciliation differences are documented.
-- The analytical layer supports both the **2024 sales reporting requirement** and broader operational reporting by preserving `order_status`.
-- All dbt models are materialized as physical tables, resulting in a deterministic, simple, and maintainable transformation pipeline.
+- The provided datasets are not a complete relational snapshot, and expected reconciliation differences are documented.
+- The analytical layer supports both the **2024 reporting requirement** and broader operational reporting through `order_status`.
+- The layered architecture keeps transformation logic modular, deterministic, and maintainable.
